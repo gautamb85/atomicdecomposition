@@ -1,0 +1,67 @@
+% %function to generate the final book from 
+% %the combination of the tonal + transient blocks
+% 
+% % input signal length = 2048
+% % tonal block = 2048x8192
+% % transient block = 2048x4065280
+% clear all;
+% clc;
+% 
+% x = cos(2*pi*440*[0:2047]'/11000);
+%  
+%  T = 0.01;
+% l = 64;
+% N = 2048;
+% winlen = N;
+% a0 = log(T)/l;
+% 
+% win = exp(a0*[0:l-1]');
+% win = win/norm(win);
+% 
+% prepad = zeros(1700,1);
+% postpad = zeros(winlen-length(prepad)-l,1);
+% %dampwin = [prepad;win;postpad];
+% %dampwin = dampwin/norm(dampwin);
+% 
+% y = win.*exp(1j*2*pi*30/2048*[0:l-1]');
+% yf = [prepad;y;postpad];
+% 
+% mix = x+yf;
+
+%% Matching Pursuit for a union of frames
+function [book] = MPg(y
+N = 2048;
+ 
+ %support of tonal block
+ tonal_sup = 1:8192;
+ trans_sup = 8192+1:8192 + (2048*1985) -1;
+ booklen = 8192 + (2048*1985);
+ book = zeros(booklen,1);
+ 
+ res = yf;
+ its = 0;
+ 
+ while(its<10)
+ 
+ bl=0;
+ 
+ [alpha1 ind1] = gabcorr(res,N);
+ [alpha2 ind2] = damptrans(res,N);
+ 
+ 
+ if (abs(alpha1)>abs(alpha2))
+     bl=1;
+     alpha = alpha1;
+     atom = gab_atomgen(ind1);
+     book(ind1) = alpha1;
+ else
+     bl=2;
+     alpha = alpha2;
+     atom = trans_atomgen(ind2);
+     book(8192 +ind2) = alpha2;
+ end
+
+ res = res - real(alpha*atom);
+ its = its+1;
+ end
+

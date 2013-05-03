@@ -1,0 +1,41 @@
+function [alpha index] = dsheavicorr(x,fftlen)
+
+Tf = 0.01;
+Tb = 0.01;
+winlen = 2048;
+
+Corr = zeros(winlen,1);
+ind = zeros(winlen,1);
+
+window = zeros(winlen,1);
+
+%for ptr = 0:winlen-1
+    
+    % forward & backward length
+    bl = winlen/2;
+    fl = bl;
+
+    af = log(Tf)/fl;
+    ab = log(Tb)/bl;
+
+    % damped exponential window - forward & backward
+    fwin = exp(af.*[0:fl-1]');
+    %fwin = fwin/norm(fwin);
+
+    bwin = exp(ab*[0:bl-1]');
+    %bwin = bwin/norm(bwin);
+    % combined window
+    window(1:bl) = bwin;
+    window(bl+1:2048) = fwin;
+    
+    chunk = fft(window .* x,fftlen);
+     
+     [~,i] = max(abs(chunk));
+     Corr(ptr+1) = chunk(i);
+     ind(ptr+1) = i + ptr*winlen;
+end
+                
+[~,i1] = max(abs(Corr));
+alpha = Corr(i1);
+index = ind(i1);
+end
