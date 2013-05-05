@@ -194,7 +194,6 @@ for j = 1:bl2-1,
  [l1,ind] = max(abs(Corr11));
  l2 = max(abs(Corr12));
        
- %with changes!!!!
        
        
  
