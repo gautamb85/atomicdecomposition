@@ -76,14 +76,14 @@ for i = 1:5,
     
 end
 
-%%  find seed atom = working
+%  find seed atom = working
 
-[~,ind] = max(abs(C));
+[~,ind1] = max(abs(C));
 k = length(bldiv);
 
 %make a matrix of correlations
 %%
-  ind = 8192*5 +30;
+  ind = 8000;
   
      C1 = C(1:bldiv(1));
      
