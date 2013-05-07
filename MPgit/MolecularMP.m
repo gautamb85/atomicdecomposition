@@ -20,9 +20,12 @@
 function mbook = MolecularMP(sc,ip,fftlen,window)
 
     res = ip;
+    res = res/norm(res);
     lip = length(ip);
     % find initial seed atom
         
+    % power
+      pow = 10*log10(res'*res);
     scale = sc;
     
 
@@ -63,10 +66,17 @@ function mbook = MolecularMP(sc,ip,fftlen,window)
      popad = zeros(po,1);    
      %pad atom upto input length
      fatom = [prepad;atom;popad];
+     fatom = fatom/norm(fatom);
      
      
      %subtract this atom from the residual
      res = res - real(alpha.*fatom);
+     
+     % calculate srr (based on seed atom)
+      pres = 10*log10(res'*res);
+      srr = pow -pres;
+      fprintf('SRR acheived by seed atom = %d \n',srr);   
+
      
      % determine analysis window to consider for the molecule
      dicblk = overlap(stblk,hop,lip);
@@ -75,7 +85,7 @@ function mbook = MolecularMP(sc,ip,fftlen,window)
      D = dictgen(lip,scale,dicblk,window,bin);
      
      %start building a molecule with this seed atom
-      mbook = buildmolecule(D,res,window,book,bin,dicblk,scale,fftlen,mms,0);
+      mbook = buildmolecule(D,res,window,book,bin,dicblk,scale,fftlen,mms,0,pres);
 end
   
   %function to calculate the correlations for seed atom determination
@@ -127,7 +137,7 @@ function dicblk = overlap(stblk,hop,lip)
      sblk = 0;
      
      %fwd and bwd atoms, make it a parameter
-     fbat = 3;
+     fbat = 5;
      
      for j=1:fbat,
         
@@ -181,12 +191,13 @@ end
  function D = dictgen(lip,scale,dicblk,window,bin)
 
 %generate explicit dictionary
-
+        
      % inputs is a vector of blocks overlapping in time
      % with the seed atom
  
      k = length(dicblk);
      D = [];
+    
      %remember to change this
      hop = scale/2; 
      
@@ -210,7 +221,7 @@ end
  %analysis
  %%
  
- function [book done] = buildmolecule(D,res,window,book,bin,dicblk,scale,fftlen,mms,done)
+ function [book done] = buildmolecule(D,res,window,book,bin,dicblk,scale,fftlen,mms,done,pres)
  
  r =size(D,2);
  %book2 = zeros(fftlen*r,1);
@@ -218,6 +229,7 @@ end
  Cs = D'*res;
  lipr = length(res);
  hop = scale/2;
+ 
  
  [mma,in3] = max(abs(Cs));
   
@@ -232,7 +244,7 @@ end
  
  while (done==0)
      
-     if(mma <0.3*mms)
+     if(mma <0.1*mms)
          done =1;
         
 
@@ -250,10 +262,12 @@ end
          % block relative to the original signal
 
           %stblk1 = (act_blk)*hop;
-
+         if (st1==1)
+             actindex = 1 + bin;
          % index relative to main book
-         actindex = (st1-1)*fftlen + bin;
-
+         else
+            actindex = (st1-1)*fftlen + bin;
+         end
 
           % generate the atom
 
@@ -273,7 +287,18 @@ end
          poe = zeros((lipr - length(pp) - scale),1);
 
          gatom = [pp;gatom;poe];
+         %normailize all atoms and ip
+         gatom = gatom/norm(gatom);
+         
          res = res - real(alpha2*gatom);
+         presm = 10*log10(res'*res);
+         % SRR
+         srr = pres -  presm;
+          fprintf('SRR = %d \n',srr);   
+          
+          if (srr >= 1)
+              done=1;
+          end
 
           %update main book 
           book(actindex) = book(actindex) + alpha2;
@@ -285,7 +310,7 @@ end
           Dm = dictgen(lipr,scale,dicblk2,window,bing);
          %run matching pursut and repeat until the correlation of the selected
          % atom is too low or 5 atoms are selected 
-          [book done] = buildmolecule(Dm,res,window,book,bin,dicblk2,scale,fftlen,mms,done);
+          [book done] = buildmolecule(Dm,res,window,book,bin,dicblk2,scale,fftlen,mms,done,presm);
          
           
 %           c = c +1;
